@@ -1,0 +1,13 @@
+%% open
+featherPath='/dev/cu.usbmodem3003971';
+featherBaud=9600;
+feather=serial(featherPath,'BaudRate',featherBaud);
+fopen(feather);
+flushinput(feather);
+
+
+
+%% close
+fclose(feather)
+delete(feather)
+clear all
