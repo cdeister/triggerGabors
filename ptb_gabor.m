@@ -1,4 +1,4 @@
-%% open
+% %% open
 % featherPath='/dev/cu.usbmodem3003971';
 % featherBaud=9600;
 % feather=serial(featherPath,'BaudRate',featherBaud);
@@ -6,15 +6,8 @@
 % flushinput(feather);
 
 %%
-
-
-%%
-numTrials = 5;
-
-orientList = [0,20,40,80,120];
-freqList = [1,2,4,8,16,32];
-
-%% 
+% Clear  the workspace
+clearvars -except orientList n numTrials freqList  
 
 % Setup PTB with default values
 PsychDefaultSetup(2);
@@ -26,22 +19,23 @@ screenNumber = max(Screen('Screens'));
 white = WhiteIndex(screenNumber);
 grey = white / 2; 
 
+% Skip sync tests
+Screen('Preference', 'SkipSyncTests', 2);
+
 % Open the screen
 [window, windowRect] = PsychImaging('OpenWindow', screenNumber, grey, [], 32, 2,...
     [], [],  kPsychNeed32BPCFloat);
 
+%% 
+numTrials = 10;
+
+orientList = [0,20,40,80,120];
+freqList = [1,2,4,8,16,32];
 
 %%
 for n = 1:numTrials
 
-%Clear  the workspace
-close all;
-clearvars -except orientList n numTrials freqList
-
-% Skip sync tests
-Screen('Preference', 'SkipSyncTests', 2);
-
-% Dimension of the region where will draw the Gabor in pixels
+% Dimension of the region of Gabor in pixels
 gaborDimPix = windowRect(4) / 2;
 
 % Sigma of Gaussian
@@ -78,9 +72,8 @@ Screen('DrawTextures', window, gabortex, [], [], orientation, [], [], [], [],...
 Screen('Flip', window);
 
 % Button press changes screen
-KbWait;
+KbStrokeWait;
 
 end
 
 sca;
-
