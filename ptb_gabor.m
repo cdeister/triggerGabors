@@ -1,10 +1,10 @@
 %% open com
-featherPath='/dev/cu.usbmodem2762721';
+featherPath='COM13';
 featherBaud=9600;
 feather=serial(featherPath,'BaudRate',featherBaud);
 fopen(feather);
 flushinput(feather);
-
+%%
 % Setup PTB with default values
 PsychDefaultSetup(2);
 
@@ -30,10 +30,10 @@ numTrials = 1;
 k=0;
 lastK=k;    
 h=0;
-timeout=25000;
+timeout=250000000;
 
 % default values
-contrast = 1;
+contrast = 0;
 orientation = 0;
 tempfreq = 0;
 runningTask=1;
@@ -45,15 +45,16 @@ end
 
 while h<=timeout
     
-    if feather.BytesAvailable>0 
+    if feather.BytesAvailable>=0 
         tempBuf=fscanf(feather);                                           
         splitBuf=strsplit(tempBuf,',');
         disp(tempBuf)
         
         if strcmp(splitBuf{1},'o')
             setOrientation = str2num(splitBuf{2});
-            if setOrientation>0
+            if setOrientation>=0
                 orientation=setOrientation;
+                logOrient(h)=orientation;
             else
             end
         else
@@ -61,9 +62,9 @@ while h<=timeout
         
         if strcmp(splitBuf{1},'u')
             setContrast = str2num(splitBuf{2});
-            if setContrast>0
+            if setContrast>=0
                 contrast=setContrast;
-                contrast=1;
+                contrast=contrast/100;
             else
             end
         else
@@ -105,14 +106,14 @@ while h<=timeout
     backgroundOffset = [0.5 0.5 0.5 0.0];
     disableNorm = 1;          
     preContrastMultiplier = 0.5;
-    gabortex = CreateProceduralGabor(window, gaborDimPix, gaborDimPix, [],...
+    [gabortex gabRec] = CreateProceduralGabor(window, gaborDimPix, gaborDimPix, [],...
         backgroundOffset, disableNorm, preContrastMultiplier);
 
     % Randomise the phase of the Gabors and make a properties matrix.
     propertiesMat = [phase, freq, sigma, contrast, aspectRatio, 0, 0, 0];
 
     % Draw the Gabor
-    Screen('DrawTextures', window, gabortex, [], [], orientation, [], [], [], [],...
+    Screen('DrawTextures', window, gabortex, [], OffsetRect(gabRec,500,250), orientation, [], [], [], [],...
         kPsychDontDoRotation, propertiesMat');
 
     % Flip to the screen
