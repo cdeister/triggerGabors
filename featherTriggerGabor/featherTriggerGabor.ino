@@ -17,6 +17,7 @@ int knownValues[] = { -1, -1, -1, -1, -1};
 int varCount = 5;
 
 int varRec = 0;
+int useDisplay=1;
 
 int curTrial = knownValues[0];
 int orientation = knownValues[1];
@@ -26,18 +27,16 @@ int vReset = knownValues[4];
 
 
 
-
 void setup()   {
   Serial.begin(9600);
-  // ** Initialize the i2c, by pulling the pin high (you can call the pull up).
-  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
-  // initialize with the I2C addr 0x3C (for the 128x32)
-
-  display.display();
-  delay(100);
-
-  updateDisp();
-
+  if (useDisplay) {
+    // ** Initialize the i2c, by pulling the pin high (you can call the pull up).
+    display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+    // initialize with the I2C addr 0x3C (for the 128x32)
+    display.display();
+    delay(100);
+    updateDisp();
+  }
 }
 
 
