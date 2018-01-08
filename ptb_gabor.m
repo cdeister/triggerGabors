@@ -1,9 +1,15 @@
-%% open com
-featherPath='/dev/cu.usbmodem2762721';
+% TODO:
+% _ Save Path
+% _ Animal Tag?
+
+% open com
+
+featherPath='/dev/cu.usbmodem21231';
 featherBaud=9600;
 feather=serial(featherPath,'BaudRate',featherBaud);
 fopen(feather);
 flushinput(feather);
+
 
 % Setup PTB with default values
 PsychDefaultSetup(2);
@@ -15,78 +21,77 @@ screenNumber = max(Screen('Screens'));
 white = WhiteIndex(screenNumber);
 grey = white / 2; 
 
-% Skip sync tests
-Screen('Preference', 'SkipSyncTests', 2); 
+Screen('Preference', 'SkipSyncTests', 2);
+Screen('Preference', 'Verbosity', 0);
 
-%%
-% Open the screen
-[window, windowRect] = PsychImaging('OpenWindow',...
-    screenNumber, grey, [], 32, 2,[], [],kPsychNeed32BPCFloat);
-    
-% 
-% set up trials etc.
-numTrials = 1;                    
+[window, windowRect] = PsychImaging('OpenWindow',screenNumber,...
+    grey, [], 32, 2,[], [],kPsychNeed32BPCFloat);
+
+                  
    
 k=0;
 lastK=k;    
 h=0;
-timeout=25000;
+
 
 % default values
-contrast = 1;
-orientation = 0;
-tempfreq = 0;
+tContrast = 0;
+tOrient = 0;
+tSFreq=0;
+tTFreq=0;
+
 runningTask=1;
+
+trialNum=0;
+tTime={};
+tCntr=0;
+cScale=100;
 
 % drain the buffer
 while feather.BytesAvailable>0
     fscanf(feather);
 end
 
-while h<=timeout
+while runningTask
     
     if feather.BytesAvailable>0 
         tempBuf=fscanf(feather);                                           
         splitBuf=strsplit(tempBuf,',');
         disp(tempBuf)
         
-        if strcmp(splitBuf{1},'o')
-            setOrientation = str2num(splitBuf{2});
-            if setOrientation>0
-                orientation=setOrientation;
-            else
-            end
-        else
-        end
-        
-        if strcmp(splitBuf{1},'u')
-            setContrast = str2num(splitBuf{2});
-            if setContrast>0
-                contrast=setContrast;
-                contrast=1;
-            else
-            end
-        else
-        end
+        if strcmp(splitBuf{1},'v')
+            
+            lastTrial=trialNum;
+            
+            trialNum = str2num(splitBuf{2});
+    
+            orientation(trialNum) = str2num(splitBuf{3});
+            tOrient=orientation(trialNum);
+            disp(tOrient)
+    
+            contrast(trialNum) = str2num(splitBuf{4});
+            tContrast=(contrast(trialNum)/cScale);
+            disp(tContrast)
+            
+            sFreq(trialNum) = str2num(splitBuf{5});
+            tSFreq=sFreq(trialNum);
+     
+            tempFreq(trialNum) = str2num(splitBuf{6});
+            tTFreq=tempFreq(trialNum);
+    
+            runningTask = str2num(splitBuf{7});
 
-        if strcmp(splitBuf{1},'t')
-            setTempFreq = str2num(splitBuf{2});
-            if setTempFreq>0
-                tempFreq=setTempFreq;
+            
+            if trialNum-lastTrial>0
+                tStart(trialNum)=GetSecs;
+                tCntr=0;
             else
             end
+            
+            tCntr=tCntr+1;
+            tTime{trialNum}(tCntr)=GetSecs-tStart(trialNum);  
         else
-        end
-        
-        if strcmp(splitBuf{1},'r')
-            setRunningTask = str2num(splitBuf{2});
-            if setRunningTask>0
-                runningTask=setRunningTask;
-            else
-            end
-        else
-        end
-        
+        end 
     else 
     end
     
@@ -98,8 +103,8 @@ while h<=timeout
     aspectRatio = 1.0;
     phase = 0;
 
-    % Spatial Frequency (Cycles Per Pixel)
-    numCycles = 10;
+    % Spatial Frequency (Cycles Per Degree)
+    numCycles = tSFreq;
     freq = numCycles / gaborDimPix;
 
     backgroundOffset = [0.5 0.5 0.5 0.0];
@@ -109,10 +114,10 @@ while h<=timeout
         backgroundOffset, disableNorm, preContrastMultiplier);
 
     % Randomise the phase of the Gabors and make a properties matrix.
-    propertiesMat = [phase, freq, sigma, contrast, aspectRatio, 0, 0, 0];
+    propertiesMat = [phase, freq, sigma, tContrast, aspectRatio, 0, 0, 0];
 
     % Draw the Gabor
-    Screen('DrawTextures', window, gabortex, [], [], orientation, [], [], [], [],...
+    Screen('DrawTextures', window, gabortex, [], [], tOrient, [], [], [], [],...
         kPsychDontDoRotation, propertiesMat');
 
     % Flip to the screen
@@ -122,14 +127,13 @@ while h<=timeout
 
 end
 
-
-
-
-sca;
-
-%%
-% close and clean up
+sca
 fclose(feather)
 delete(feather)
 
+% close and clean up
+clearvars -except orientation contrast sFreq tempFreq tTime
+save([date '_psychTBOutput.mat'])
 clear all
+
+
