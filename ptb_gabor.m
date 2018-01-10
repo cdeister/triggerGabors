@@ -4,7 +4,7 @@
 
 % open com
 
-featherPath='/dev/cu.usbmodem21231';
+featherPath='/dev/cu.usbmodem1431';
 featherBaud=9600;
 feather=serial(featherPath,'BaudRate',featherBaud);
 fopen(feather);
