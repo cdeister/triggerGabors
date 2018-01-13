@@ -4,7 +4,7 @@
 
 % open com
 
-featherPath='/dev/cu.usbmodem1431';
+featherPath='COM13';
 featherBaud=9600;
 feather=serial(featherPath,'BaudRate',featherBaud);
 fopen(feather);
@@ -57,8 +57,7 @@ while runningTask
     if feather.BytesAvailable>0 
         tempBuf=fscanf(feather);                                           
         splitBuf=strsplit(tempBuf,',');
-        disp(tempBuf)
-        
+
         if strcmp(splitBuf{1},'v')
             
             lastTrial=trialNum;
@@ -67,11 +66,10 @@ while runningTask
     
             orientation(trialNum) = str2num(splitBuf{3});
             tOrient=orientation(trialNum);
-            disp(tOrient)
+
     
             contrast(trialNum) = str2num(splitBuf{4});
             tContrast=(contrast(trialNum)/cScale);
-            disp(tContrast)
             
             sFreq(trialNum) = str2num(splitBuf{5});
             tSFreq=sFreq(trialNum);
@@ -110,14 +108,14 @@ while runningTask
     backgroundOffset = [0.5 0.5 0.5 0.0];
     disableNorm = 1;          
     preContrastMultiplier = 0.5;
-    gabortex = CreateProceduralGabor(window, gaborDimPix, gaborDimPix, [],...
+    [gabortex gabRec] = CreateProceduralGabor(window, gaborDimPix, gaborDimPix, [],...
         backgroundOffset, disableNorm, preContrastMultiplier);
 
     % Randomise the phase of the Gabors and make a properties matrix.
     propertiesMat = [phase, freq, sigma, tContrast, aspectRatio, 0, 0, 0];
 
     % Draw the Gabor
-    Screen('DrawTextures', window, gabortex, [], [], tOrient, [], [], [], [],...
+    Screen('DrawTextures', window, gabortex, [], OffsetRect(gabRec,150,200), tOrient, [], [], [], [],...
         kPsychDontDoRotation, propertiesMat');
 
     % Flip to the screen
