@@ -4,7 +4,7 @@
 
 % open com
 
-featherPath='/dev/cu.usbmodem1431';
+featherPath='COM29';
 featherBaud=9600;
 feather=serial(featherPath,'BaudRate',featherBaud);
 fopen(feather);
@@ -15,7 +15,7 @@ flushinput(feather);
 PsychDefaultSetup(2);
 
 % Set the screen number to the secondary monitor if there is one
-screenNumber = max(Screen('Screens'));   
+screenNumber = 1;   
 
 % Define black, white and grey
 white = WhiteIndex(screenNumber);
@@ -51,12 +51,13 @@ while feather.BytesAvailable>0
 end
 lastContrast=0;
 
-g=0;
-while g<8000
+runningTask=1;
+while runningTask
     if feather.BytesAvailable>0 
         tempBuf=fscanf(feather);                                           
         splitBuf=strsplit(tempBuf,',');
         if strcmp(splitBuf{1},'v')
+            disp('ser');
             tOrient = str2num(splitBuf{2})*cScale;
             tContrast=str2num(splitBuf{3})/cScale;
             tSFreq=20;
@@ -89,13 +90,13 @@ while g<8000
     propertiesMat = [phase, freq, sigma, tContrast, aspectRatio, 0, 0, 0];
 
     % Draw the Gabor
-    Screen('DrawTextures', window, gabortex, [], OffsetRect(gabRec,150,200), tOrient, [], [], [], [],...
+    Screen('DrawTextures', window, gabortex, [], OffsetRect(gabRec,190,80), tOrient, [], [], [], [],...
         kPsychDontDoRotation, propertiesMat');
     % Flip to the screen
     Screen('Flip', window);
     h=h+1;
 %   KbStrokeWait;
-    g=g+1;
+
 
 end
 
