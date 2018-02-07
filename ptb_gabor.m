@@ -4,7 +4,7 @@
 
 % open com
 
-featherPath='COM13';
+featherPath='/dev/cu.usbmodem1431';
 featherBaud=9600;
 feather=serial(featherPath,'BaudRate',featherBaud);
 fopen(feather);
@@ -26,9 +26,7 @@ Screen('Preference', 'Verbosity', 0);
 
 [window, windowRect] = PsychImaging('OpenWindow',screenNumber,...
     grey, [], 32, 2,[], [],kPsychNeed32BPCFloat);
-
-                  
-   
+  
 k=0;
 lastK=k;    
 h=0;
@@ -45,54 +43,30 @@ runningTask=1;
 trialNum=0;
 tTime={};
 tCntr=0;
-cScale=100;
+cScale=10;
 
 % drain the buffer
 while feather.BytesAvailable>0
     fscanf(feather);
 end
+lastContrast=0;
 
-while runningTask
-    
+g=0;
+while g<8000
     if feather.BytesAvailable>0 
         tempBuf=fscanf(feather);                                           
         splitBuf=strsplit(tempBuf,',');
-
         if strcmp(splitBuf{1},'v')
-            
-            lastTrial=trialNum;
-            
-            trialNum = str2num(splitBuf{2});
-    
-            orientation(trialNum) = str2num(splitBuf{3});
-            tOrient=orientation(trialNum);
-
-    
-            contrast(trialNum) = str2num(splitBuf{4});
-            tContrast=(contrast(trialNum)/cScale);
-            
-            sFreq(trialNum) = str2num(splitBuf{5});
-            tSFreq=sFreq(trialNum);
-     
-            tempFreq(trialNum) = str2num(splitBuf{6});
-            tTFreq=tempFreq(trialNum);
-    
-            runningTask = str2num(splitBuf{7});
-
-            
-            if trialNum-lastTrial>0
-                tStart(trialNum)=GetSecs;
-                tCntr=0;
-            else
-            end
-            
-            tCntr=tCntr+1;
-            tTime{trialNum}(tCntr)=GetSecs-tStart(trialNum);  
+            tOrient = str2num(splitBuf{2})*cScale;
+            tContrast=str2num(splitBuf{3})/cScale;
+            tSFreq=20;
+            tTFreq=20;
+            runningTask = str2num(splitBuf{6});
         else
         end 
     else 
     end
-    
+        
     % Dimension of the region of Gabor in pixels
     gaborDimPix = windowRect(4) / 2;
 
@@ -117,11 +91,11 @@ while runningTask
     % Draw the Gabor
     Screen('DrawTextures', window, gabortex, [], OffsetRect(gabRec,150,200), tOrient, [], [], [], [],...
         kPsychDontDoRotation, propertiesMat');
-
     % Flip to the screen
     Screen('Flip', window);
     h=h+1;
 %   KbStrokeWait;
+    g=g+1;
 
 end
 

@@ -1,5 +1,5 @@
 % % ptb only, but with trigger out.
-featherPath='COM16';
+featherPath='/dev/cu.usbmodem1431';
 featherBaud=9600;
 feather=serial(featherPath,'BaudRate',featherBaud);
 fopen(feather);
@@ -10,7 +10,7 @@ animalID='ci00';
 PsychDefaultSetup(2);
 
 % Set the screen number to the secondary monitor if there is one
-screenNumber = max(Screen('Screens'));   
+screenNumber = 1;   
 
 % Define black, white and grey
 white = WhiteIndex(screenNumber);
