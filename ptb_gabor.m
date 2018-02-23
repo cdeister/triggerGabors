@@ -4,7 +4,7 @@
 
 % open com
 
-featherPath='COM29';
+featherPath='COM36';
 featherBaud=9600;
 feather=serial(featherPath,'BaudRate',featherBaud);
 fopen(feather);
@@ -60,7 +60,7 @@ while runningTask
             disp('ser');
             tOrient = str2num(splitBuf{2})*cScale;
             tContrast=str2num(splitBuf{3})/cScale;
-            tSFreq=20;
+            tSFreq=str2num(splitBuf{4});
             tTFreq=20;
             runningTask = str2num(splitBuf{6});
         else
@@ -90,7 +90,7 @@ while runningTask
     propertiesMat = [phase, freq, sigma, tContrast, aspectRatio, 0, 0, 0];
 
     % Draw the Gabor
-    Screen('DrawTextures', window, gabortex, [], OffsetRect(gabRec,190,80), tOrient, [], [], [], [],...
+    Screen('DrawTextures', window, gabortex, [], OffsetRect(gabRec,200,40), tOrient, [], [], [], [],...
         kPsychDontDoRotation, propertiesMat');
     % Flip to the screen
     Screen('Flip', window);
