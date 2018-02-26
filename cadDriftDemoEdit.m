@@ -1,51 +1,5 @@
-function DriftDemo2(angle, cyclespersecond, f, drawmask, gratingsize)
-% function DriftDemo2([angle=30][, cyclespersecond=1][, f=0.05][, drawmask=1][, gratingsize=400])
-% ___________________________________________________________________
-%
-% Display an animated grating using the new Screen('DrawTexture') command.
-% In Psychtoolbox 3, the  Screen('DrawTexture') replaces
-% Screen('CopyWindow'). The demo will stop after roughly 20 seconds have
-% passed or after the user hits a key.
-%
-% This demo illustrates how to draw an animated 2-D grating online by use of
-% only one 1-D grating texture. We create one texture with a static cosine
-% grating. In each successive frame we only draw a rectangular subregion of
-% the texture onto the screen, basically showing the texture through
-% an aperture. The subregion - and therefore our "aperture" is shifted each
-% frame, so we create the impression of a moving grating.
-%
-% The demo also shows how to use alpha-blending for masking the grating
-% with a gaussian transparency mask (a texture with transparency layer).
-%
-% And finally, we demonstrate rotated drawing, as well as how to emulate
-% the old OS-9 'WaitBlanking' command with the new 'Flip' command.
-%
-% Optional parameters:
-%
-% angle = Angle of the grating with respect to the vertical direction.
-% cyclespersecond = Speed of grating in cycles per second.
-% f = Frequency of grating in cycles per pixel.
-% drawmask = If set to 1, a gaussian aperture is drawn over the grating.
-% gratingsize = Visible size of grating in screen pixels.
-%
-% CopyWindow vs. DrawTexture:
-%
-% In the OS 9 Psychtoolbox, Screen ('CopyWindow") was used for all
-% time-critical display of images, in particular for display of the movie
-% frames in animated stimuli. In contrast, Screen('DrawTexture') should not
-% be used for display of all graphic elements,  but only for  display of
-% MATLAB matrices.  For all other graphical elements, such as lines,  rectangles,
-% and ovals we recommend that these be drawn directly to the  display
-% window during the animation rather than rendered to offscreen  windows
-% prior to the animation.
-%
-% _________________________________________________________________________
-% 
-% see also: PsychDemos, MovieDemo
+function cadDriftDemoEdit(angle, cyclespersecond, f, drawmask, gratingsize)
 
-% HISTORY
-%  6/7/05    mk     Adapted from Allen Ingling's DriftDemoOSX.m
-%  2/28/09   mk     Updated with small fixes and enhancements + additional comments.
 Screen('Preference', 'SkipSyncTests', 2);
 Screen('Preference', 'Verbosity', 0);
 
@@ -55,7 +9,7 @@ end
 
 if isempty(gratingsize)
     % By default the visible grating is 400 pixels by 400 pixels in size:
-    gratingsize = 2196;
+    gratingsize = 400;
 end
 
 if nargin < 4
@@ -64,7 +18,7 @@ end
 
 if isempty(drawmask)
     % By default, we mask the grating by a gaussian transparency mask:
-    drawmask=0;
+    drawmask=1;
 end;
 
 if nargin < 3
@@ -94,7 +48,7 @@ if isempty(angle)
     angle=180;
 end;
 
-movieDurationSecs=5;   % Abort demo after 20 seconds.
+movieDurationSecs=2;   % Abort demo after 20 seconds.
 
 % Define Half-Size of the grating image.
 texsize=gratingsize / 2;
@@ -102,19 +56,8 @@ texsize=gratingsize / 2;
 % Screen('Preference', 'SkipSyncTests', 1);
 
 try
-    % This script calls Psychtoolbox commands available only in OpenGL-based 
-    % versions of the Psychtoolbox. (So far, the OS X Psychtoolbox is the
-    % only OpenGL-base Psychtoolbox.)  The Psychtoolbox command AssertPsychOpenGL will issue
-    % an error message if someone tries to execute this script on a computer without
-    % an OpenGL Psychtoolbox
-    AssertOpenGL;
 
-    % Get the list of screens and choose the one with the highest screen number.
-    % Screen 0 is, by definition, the display with the menu bar. Often when 
-    % two monitors are connected the one without the menu bar is used as 
-    % the stimulus display.  Chosing the display with the highest dislay number is 
-    % a best guess about where you want the stimulus displayed.  
-    
+%     AssertOpenGL;
     screens=Screen('Screens');
     screenNumber=1;
 
@@ -178,23 +121,26 @@ try
     
     % Compute actual cosine grating:
     grating=gray + inc*cos(fr*x);
-
-    % Store 1-D single row grating in texture:
+    assignin('base','gratingd',grating);
     gratingtex=Screen('MakeTexture', w, grating);
-
-    % Create a single gaussian transparency mask and store it to a texture:
-    % The mask must have the same size as the visible size of the grating
-    % to fully cover it. Here we must define it in 2 dimensions and can't
-    % get easily away with one single row of pixels.
-    %
-    % We create a  two-layer texture: One unused luminance channel which we
-    % just fill with the same color as the background color of the screen
-    % 'gray'. The transparency (aka alpha) channel is filled with a
-    % gaussian (exp()) aperture mask:
     mask=ones(2*texsize+1, 2*texsize+1, 2) * gray;
     [x,y]=meshgrid(-1*texsize:1*texsize,-1*texsize:1*texsize);
     mask(:, :, 2)= round(white * (1 - exp(-((x/90).^2)-((y/90).^2))));
+    gPlus=(gratingsize+1);
+    
+    % the middle of the grating is 
+    assignin('base','tCenter',fix(gratingsize/2))
+    targOffset=[-100,-100];
+
+    
+    yOff=targOffset(2);
+    xOff=targOffset(1);
+    mask(:, :, 2)=circshift(mask(:, :, 2),[yOff,xOff]);
+    mask(:,gPlus+xOff:gPlus,2)=max(grating);
+    mask(gPlus+yOff:gPlus,:,2)=max(grating);
+    assignin('base','testMask',mask);
     masktex=Screen('MakeTexture', w, mask);
+    assignin('base','masktexT',masktex);
 
     % Query maximum useable priorityLevel on this system:
     priorityLevel=MaxPriority(w); %#ok<NASGU>
@@ -212,6 +158,7 @@ try
 
     % Query duration of one monitor refresh interval:
     ifi=Screen('GetFlipInterval', w);
+    disp(ifi)
     
     % Translate that into the amount of seconds to wait between screen
     % redraws/updates:
@@ -229,15 +176,7 @@ try
     
     % Translate frames into seconds for screen update interval:
     waitduration = waitframes * ifi;
-    
-    % Recompute p, this time without the ceil() operation from above.
-    % Otherwise we will get wrong drift speed due to rounding errors!
-    p=1/f;  % pixels/cycle    
-
-    % Translate requested speed of the grating (in cycles per second) into
-    % a shift value in "pixels per frame", for given waitduration: This is
-    % the amount of pixels to shift our srcRect "aperture" in horizontal
-    % directionat each redraw:
+    p=1/f;
     shiftperframe= cyclespersecond * p * waitduration;
 
     % Perform initial Flip to sync us to the VBL and for getting an initial
@@ -264,7 +203,7 @@ try
         % hardware...
         xoffset = mod(i*shiftperframe,p);
         i=i+1;
-        
+
         % Define shifted srcRect that cuts out the properly shifted rectangular
         % area from the texture: We cut out the range 0 to visiblesize in
         % the vertical direction although the texture is only 1 pixel in
@@ -279,7 +218,7 @@ try
 
         if drawmask==1
             % Draw gaussian mask over grating:
-            Screen('DrawTexture', w, masktex, [0 0 visiblesize visiblesize], dstRect, angle);
+            Screen('DrawTexture', w, masktex, [], dstRect, angle);
         end
 
         % Flip 'waitframes' monitor refresh intervals after last redraw.
