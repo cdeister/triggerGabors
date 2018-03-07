@@ -1,7 +1,7 @@
 function cadDriftDemoEdit(angle, cyclespersecond, f, drawmask, gratingsize)
-
-Screen('Preference', 'SkipSyncTests', 2);
 Screen('Preference', 'Verbosity', 0);
+Screen('Preference', 'SkipSyncTests', 2);
+
 
 if nargin < 5
     gratingsize = [];
@@ -48,7 +48,7 @@ if isempty(angle)
     angle=180;
 end;
 
-movieDurationSecs=2;   % Abort demo after 20 seconds.
+movieDurationSecs=20;   % Abort demo after 20 seconds.
 
 % Define Half-Size of the grating image.
 texsize=gratingsize / 2;
@@ -66,8 +66,8 @@ try
     % the high precision framebuffer modes is enabled via the
     % PsychImaging() commmand, so we query the true values via the
     % functions WhiteIndex and BlackIndex:
-    white=WhiteIndex(screenNumber);
-    black=BlackIndex(screenNumber);
+    white=WhiteIndex(screenNumber)*1;
+    black=BlackIndex(screenNumber)*1;
 
     % Round gray to integral number, to avoid roundoff artifacts with some
     % graphics cards:
@@ -125,12 +125,12 @@ try
     gratingtex=Screen('MakeTexture', w, grating);
     mask=ones(2*texsize+1, 2*texsize+1, 2) * gray;
     [x,y]=meshgrid(-1*texsize:1*texsize,-1*texsize:1*texsize);
-    mask(:, :, 2)= round(white * (1 - exp(-((x/90).^2)-((y/90).^2))));
+    mask(:, :, 2)= round(white * (1 - exp(-((x/200).^2)-((y/200).^2))));
     gPlus=(gratingsize+1);
     
     % the middle of the grating is 
     assignin('base','tCenter',fix(gratingsize/2))
-    targOffset=[-100,-100];
+    targOffset=[200+angle,-200+angle];
 
     
     yOff=targOffset(2);
