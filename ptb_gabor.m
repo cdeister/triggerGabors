@@ -1,112 +1,136 @@
-% TODO:
-% _ Save Path
-% _ Animal Tag?
+useSerial=1;
 
-% open com
+gSize=900;
+nonsymmetric=0;
+if useSerial==1
+    featherPath='COM36';
+    featherBaud=9600;
+    feather=serial(featherPath,'BaudRate',featherBaud);
+    fopen(feather);
+    flushinput(feather);
+else
+end
 
-featherPath='COM36';
-featherBaud=9600;
-feather=serial(featherPath,'BaudRate',featherBaud);
-fopen(feather);
-flushinput(feather);
-
-
-% Setup PTB with default values
 PsychDefaultSetup(2);
-
-% Set the screen number to the secondary monitor if there is one
-screenNumber = 1;   
-
-% Define black, white and grey
-white = WhiteIndex(screenNumber);
-grey = white / 2; 
-
+screenid = 1;   
 Screen('Preference', 'SkipSyncTests', 2);
 Screen('Preference', 'Verbosity', 0);
+PsychImaging('PrepareConfiguration');
 
-[window, windowRect] = PsychImaging('OpenWindow',screenNumber,...
-    grey, [], 32, 2,[], [],kPsychNeed32BPCFloat);
-  
-k=0;
-lastK=k;    
-h=0;
+white = WhiteIndex(screenid);
+grey = white / 2; 
 
+% Initial stimulus params for the gabor patch:
+res = 1*[gSize gSize];
+phase = 0;
+sc = 50.0;
+freq = .05;
+tilt = 0;
+contrast = 0;
+aspectratio = 1.0;
 
-% default values
 tContrast = 0;
 tOrient = 0;
 tSFreq=0;
 tTFreq=0;
+lastContrast=0;
+xOff=175;
+yOff=-175;
 
-runningTask=1;
+rect = [];
+win = PsychImaging('OpenWindow', screenid, 0.5, rect);
+
+tw = res(1);
+th = res(2);
+x=tw/2;
+y=th/2;
 
 trialNum=0;
 tTime={};
 tCntr=0;
 cScale=10;
 
-% drain the buffer
-while feather.BytesAvailable>0
-    fscanf(feather);
+if useSerial==1
+    % drain the buffer
+    while feather.BytesAvailable>0
+        fscanf(feather);
+    end
+else
 end
-lastContrast=0;
+
+
+[gabortex,gabRec] = CreateProceduralGabor(win, tw, th, nonsymmetric, [0.5 0.5 0.5 0.0]);
+Screen('DrawTexture', win, gabortex, [], OffsetRect(gabRec,xOff,yOff), tilt, [], [], [], [],...
+    kPsychDontDoRotation, [phase, freq, sc, contrast, aspectratio, 0, 0, 0]);
+
+
+% Perform initial flip to gray background and sync us to the retrace:
+vbl = Screen('Flip', win);
+ts = vbl;
+count = 0;
+totmax = 0;
+
 
 runningTask=1;
+anCount=0;
+mDir=-1;
+
 while runningTask
-    if feather.BytesAvailable>0 
-        tempBuf=fscanf(feather);                                           
-        splitBuf=strsplit(tempBuf,',');
-        if strcmp(splitBuf{1},'v')
-            disp('ser');
-            tOrient = str2num(splitBuf{2})*cScale;
-            tContrast=str2num(splitBuf{3})/cScale;
-            tSFreq=str2num(splitBuf{4});
-            tTFreq=20;
-            runningTask = str2num(splitBuf{6});
+    anCount=anCount+1;
+    
+    if useSerial==1
+        if feather.BytesAvailable>0 
+            tempBuf=fscanf(feather);                                           
+            splitBuf=strsplit(tempBuf,',');
+            if strcmp(splitBuf{1},'v')
+                disp('ser');
+                tilt = str2num(splitBuf{2});
+                contrast=str2num(splitBuf{3})*cScale;
+                freq=str2num(splitBuf{4})*0.001;
+                tTFreq=20;
+                runningTask = str2num(splitBuf{6});
+            else
+            end 
+        else 
+        end
+    elseif useSerial==0
+        if anCount>1000
+            freq=0.048;
         else
-        end 
-    else 
-    end
+        end
         
-    % Dimension of the region of Gabor in pixels
-    gaborDimPix = windowRect(4) / 2;
+        if anCount>2000
+            runningTask=0;
+        else
+        end
+    end
+    
+    % animation stuff
 
-    % Sigma of Gaussian
-    sigma = gaborDimPix / 7;
-    aspectRatio = 1.0;
-    phase = 0;
+    phase = anCount * 10;
+    aspectratio = 1 + tilt; %anCount * 0.01;
+    Screen('DrawTexture', win, gabortex, [], OffsetRect(gabRec,xOff,yOff), tilt,...
+        [], [], [], [], kPsychDontDoRotation, ...
+        [(mDir*phase), freq, sc, contrast, aspectratio, 0, 0, 0]);
+    Screen('Flip', win);
+%     if KbCheck
+%             break;
+%     end
 
-    % Spatial Frequency (Cycles Per Degree)
-    numCycles = tSFreq;
-    freq = numCycles / gaborDimPix;
 
-    backgroundOffset = [0.5 0.5 0.5 0.0];
-    disableNorm = 1;          
-    preContrastMultiplier = 0.5;
-    [gabortex gabRec] = CreateProceduralGabor(window, gaborDimPix, gaborDimPix, [],...
-        backgroundOffset, disableNorm, preContrastMultiplier);
 
-    % Randomise the phase of the Gabors and make a properties matrix.
-    propertiesMat = [phase, freq, sigma, tContrast, aspectRatio, 0, 0, 0];
 
-    % Draw the Gabor
-    Screen('DrawTextures', window, gabortex, [], OffsetRect(gabRec,200,40), tOrient, [], [], [], [],...
-        kPsychDontDoRotation, propertiesMat');
-    % Flip to the screen
-    Screen('Flip', window);
-    h=h+1;
-%   KbStrokeWait;
 
 
 end
 
-sca
-fclose(feather)
-delete(feather)
+tend = Screen('Flip', win);
+avgfps = count / (tend - ts);
+fprintf('The average framerate was %f frames per second.\n', avgfps);
 
-% close and clean up
-clearvars -except orientation contrast sFreq tempFreq tTime
-save([date '_psychTBOutput.mat'])
-clear all
-
-
+sca;
+if useSerial==1
+    fclose(feather)
+    delete(feather)
+else
+end

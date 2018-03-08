@@ -59,7 +59,7 @@ try
 
 %     AssertOpenGL;
     screens=Screen('Screens');
-    screenNumber=1;
+    screenNumber=2;
 
     % Find the color values which correspond to white and black: Usually
     % black is always 0 and white 255, but this rule is not true if one of
